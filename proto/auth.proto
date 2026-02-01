@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package auth;
+
+
+service UsersService {
+    rpc CreateUser (CreateUserDto) returns (UserResponse) {};
+    rpc FindAllUsers (Empty) returns (UsersResponse) {};
+    rpc FindOneUser (FindOneUserDto) returns (UserResponse) {};
+    rpc UpdateUser (UpdateUserDto) returns (UserResponse) {};
+    rpc DeleteUser (FindOneUserDto) returns (Empty) {};
+    rpc QueryUsers (stream PaginationDto) returns (stream UsersResponse) {};
+}
+
+
+message PaginationDto {
+    int32 page = 1;
+    int32 limit = 2;
+}
+
+
+message Empty {}
+
+message FindOneUserDto {
+    string _id = 1;
+}
+
+message CreateUserDto {
+   string name = 1;
+   string username = 2;
+   string email = 3;
+   string password = 4;
+   string mobile = 5;
+   string city = 6;
+   string state = 7;
+   string district = 8;
+   string village = 9;
+   string pincode = 10;
+   string role = 11;
+}
+
+message UpdateUserDto {
+    string _id = 1;
+    optional string name = 2;
+    optional string username = 3; 
+    optional string email = 4;
+    optional string password = 5;
+    optional string mobile = 6;
+    optional string city = 7;
+    optional string state = 8;
+    optional string district = 9;
+    optional string village = 10;
+    optional string pincode = 11;
+    optional string role = 12;
+}
+
+message UserResponse {
+    string _id = 1;
+    string name = 2;
+    string username = 3;
+    string email = 4;
+    string password = 5;
+    string mobile = 6;
+    string city = 7;
+    string state = 8;
+    string district = 9;
+    string village = 10;
+    string pincode = 11;
+    string role = 12;
+}
+
+message SocialMedia {
+  optional string facebook = 1;
+   optional string twitter = 2;
+    optional string instagram = 3;
+    optional string linkedin = 4;
+}
+
+message UsersResponse {
+    repeated UserResponse users = 1;
+}
+
+
