@@ -6,30 +6,43 @@ import {
   PaginationDto,
   UsersResponse,
 } from '@app/common';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { randomUUID } from 'crypto';
+import { RpcException } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
 import { User } from './schema/user.schema';
 import { Model } from 'mongoose';
+import { status } from '@grpc/grpc-js';
 
 @Injectable()
 export class UsersService {
-
-  constructor(
-     @InjectModel(User.name) private userModel: Model<User>,
-  ) {}
+  private readonly logger = new Logger(UsersService.name);
+  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<UserResponse> {
-    
-    const emailExists = await this.userModel.findOne({ email: createUserDto.email });
+    this.logger.log('Creating a new user grpc request received');
+    this.logger.debug(`CreateUserDto: ${JSON.stringify(createUserDto)}`);
+    this.logger.verbose('Checking for existing email and mobile number');
+    const emailExists = await this.userModel.findOne({
+      email: createUserDto.email,
+    });
     if (emailExists) {
-      throw new Error('Email already exists');
+      this.logger.warn('Email already exists');
+      throw new RpcException({
+        code: status.ALREADY_EXISTS,
+        message: 'Email already exists',
+      });
     }
 
-    const mobileExists = await this.userModel.findOne({ mobile: createUserDto.mobile });
+    const mobileExists = await this.userModel.findOne({
+      mobile: createUserDto.mobile,
+    });
     if (mobileExists) {
-      throw new Error('Mobile number already exists');
+      this.logger.warn('Mobile number already exists');
+      throw new RpcException({
+        code: status.ALREADY_EXISTS,
+        message: 'Mobile number already exists',
+      });
     }
 
     const newUser = new this.userModel(createUserDto);
@@ -55,9 +68,9 @@ export class UsersService {
 
   async findAllUsers(): Promise<UsersResponse> {
     const users = await this.userModel.find().exec();
-    
+
     return {
-      users: users.map(user => ({
+      users: users.map((user) => ({
         _id: user._id.toString(),
         name: user.name,
         username: user.username,
@@ -70,7 +83,7 @@ export class UsersService {
         village: user.village,
         pincode: user.pincode,
         role: user.role,
-      }))
+      })),
     };
   }
 
@@ -78,7 +91,10 @@ export class UsersService {
     const user = await this.userModel.findById(id).exec();
 
     if (!user) {
-      throw new Error(`User with id ${id} not found`);
+      throw new RpcException({
+        code: status.NOT_FOUND,
+        message: `User with id ${id} not found`,
+      });
     }
 
     return {
@@ -99,30 +115,23 @@ export class UsersService {
 
   async updateUser(updateUserDto: UpdateUserDto): Promise<UserResponse> {
     const { _id, ...updateData } = updateUserDto;
-    
-    const updatedUser = await this.userModel.findByIdAndUpdate(
-      _id,
-      updateData,
-      { new: true }
-    ).exec();
+
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(_id, updateData, { new: true })
+      .exec();
 
     if (!updatedUser) {
-      throw new Error(`User with id ${_id} not found`);
+      throw new RpcException({
+        code: status.NOT_FOUND,
+        message: `User with id ${_id} not found`,
+      });
     }
 
+    const { _id: id, ...rest } = updatedUser.toObject();
+
     return {
-      _id: updatedUser._id.toString(),
-      name: updatedUser.name,
-      username: updatedUser.username,
-      email: updatedUser.email,
-      password: updatedUser.password,
-      mobile: updatedUser.mobile,
-      city: updatedUser.city,
-      state: updatedUser.state,
-      district: updatedUser.district,
-      village: updatedUser.village,
-      pincode: updatedUser.pincode,
-      role: updatedUser.role,
+      _id: id.toString(),
+      ...rest,
     };
   }
 
@@ -130,7 +139,10 @@ export class UsersService {
     const result = await this.userModel.findByIdAndDelete(id).exec();
 
     if (!result) {
-      throw new Error(`User with id ${id} not found`);
+      throw new RpcException({
+        code: status.NOT_FOUND,
+        message: `User with id ${id} not found`,
+      });
     }
   }
 
@@ -140,11 +152,15 @@ export class UsersService {
         next: async (pagination) => {
           const { page, limit } = pagination;
           const skip = (page - 1) * limit;
-          
-          const users = await this.userModel.find().skip(skip).limit(limit).exec();
-          
+
+          const users = await this.userModel
+            .find()
+            .skip(skip)
+            .limit(limit)
+            .exec();
+
           observer.next({
-            users: users.map(user => ({
+            users: users.map((user) => ({
               _id: user._id.toString(),
               name: user.name,
               username: user.username,
@@ -157,7 +173,7 @@ export class UsersService {
               village: user.village,
               pincode: user.pincode,
               role: user.role,
-            }))
+            })),
           });
         },
         error: (err) => observer.error(err),

@@ -3,8 +3,11 @@ import { AuthModule } from './auth.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AUTH_PACKAGE_NAME } from '@app/common';
 import 'dotenv/config';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
+  const logger = new Logger('AuthService');
+  
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(AuthModule, 
     {
        transport: Transport.GRPC,
@@ -16,7 +19,9 @@ async function bootstrap() {
        }
     }
   );
+  
   await app.listen();
-  console.log(`Auth service is running on: ${process.env.AUTH_SERVICE_PORT}`);
+  logger.log(`Auth microservice is listening on http://${process.env.AUTH_SERVICE_HOST}:${process.env.AUTH_SERVICE_PORT}`);
 }
+
 bootstrap();

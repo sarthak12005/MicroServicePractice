@@ -1,7 +1,7 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { AUTH_PACKAGE_NAME, CreateUserDto, UpdateUserDto, UserResponse, USERS_SERVICE_NAME, UsersServiceClient } from '@app/common';
 import * as microservices from '@nestjs/microservices';
-import { Observable } from 'rxjs';
+
 
 @Injectable()
 export class UsersService implements OnModuleInit {
